@@ -230,7 +230,10 @@ export default function Home() {
   };
 
   const handleProductClick = (product: Product) => {
-    handleUserInput(`Je prends le ${product.name}`);
+    // Ajouter directement au panier
+    addToCart(product);
+    // Informer l'IA
+    handleUserInput(`J'ajoute ${product.name} au panier`);
   };
 
   const handleCategoryClick = (categoryId: string, categoryName: string) => {
