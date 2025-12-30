@@ -1,36 +1,127 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Boulanger Shopping Agent IA - POC
 
-## Getting Started
+> Prototype de Shopping Agent IA pour Boulanger - Trouvez le produit idéal en moins de 5 minutes
 
-First, run the development server:
+![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![Next.js](https://img.shields.io/badge/Next.js-15-black.svg)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)
+![License](https://img.shields.io/badge/license-POC-orange.svg)
+
+## Apercu du projet
+
+Ce POC (Proof of Concept) demontre la vision d'un **Shopping Agent IA** pour Boulanger, permettant aux clients de trouver le produit ideal en moins de 5 minutes grace a une experience conversationnelle intelligente.
+
+### Objectifs
+
+- **Desirabilite** : Offrir une experience client fluide et personnalisee
+- **Utilite** : Reduire le temps de recherche produit de 70%
+- **Faisabilite** : Demontrer l'integration possible avec l'ecosysteme Boulanger
+
+## Fonctionnalites
+
+### Shopping Agent IA
+- Parcours conversationnel guide par questions
+- Recommandations produits personnalisees avec score de correspondance
+- Integration des services Boulanger (livraison, installation, reprise, garantie)
+- Interface de chat moderne et responsive
+
+### Dashboard Product Owner
+- KPIs temps reel (conversations, conversion, satisfaction)
+- Analyse des categories les plus demandees
+- Suivi des regles agentiques
+- Roadmap MVP visualisee
+
+## Stack Technique
+
+| Technologie | Usage |
+|-------------|-------|
+| **Next.js 15** | Framework React avec App Router |
+| **TypeScript** | Typage statique |
+| **Tailwind CSS** | Styling utility-first |
+| **Framer Motion** | Animations fluides |
+| **Lucide React** | Icones modernes |
+| **Vercel** | Deploiement et hosting |
+
+## Installation
 
 ```bash
+# Cloner le repository
+git clone https://github.com/majdghazi/boulanger.git
+
+# Installer les dependances
+npm install
+
+# Lancer en developpement
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+# Build pour production
+npm run build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Structure du Projet
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+src/
+├── app/                    # Pages Next.js (App Router)
+│   ├── page.tsx           # Page d'accueil + Chat
+│   ├── dashboard/         # Dashboard PO
+│   └── layout.tsx         # Layout global
+├── components/
+│   ├── chat/              # Composants du chat
+│   │   ├── ChatInterface.tsx
+│   │   ├── ChatMessage.tsx
+│   │   └── ChatOptions.tsx
+│   ├── layout/            # Header, Footer
+│   └── products/          # Cartes produits
+├── data/                  # Donnees mockees
+│   ├── categories.ts
+│   ├── products.ts
+│   └── conversation.ts
+├── types/                 # Types TypeScript
+└── lib/                   # Utilitaires
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Deploiement Vercel
 
-## Learn More
+1. Connecter le repo GitHub a Vercel
+2. Vercel detecte automatiquement Next.js
+3. Deploiement automatique a chaque push
 
-To learn more about Next.js, take a look at the following resources:
+## Parcours Utilisateur
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+1. Accueil
+   └── Message de bienvenue de l'Agent IA
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+2. Selection categorie
+   └── Electromenager / TV / Informatique / etc.
 
-## Deploy on Vercel
+3. Questions de qualification
+   ├── Type de produit
+   ├── Capacite / Taille
+   ├── Budget
+   └── Priorites (eco, silence, rapidite...)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+4. Recommandations
+   ├── 3 produits avec score de correspondance
+   ├── Raisons du match
+   ├── Services Boulanger associes
+   └── CTA vers achat
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Roadmap (Vision)
+
+| Phase | Status | Contenu |
+|-------|--------|---------|
+| **Phase 1** | Livre | Core Agent, parcours conversationnel |
+| **Phase 2** | En cours | Personnalisation, historique client |
+| **Phase 3** | Planifie | Omnicanal (app, WhatsApp, magasin) |
+| **Phase 4** | Vision | Agent autonome, negociation |
+
+## Auteur
+
+**Majd Ghazi** - Product Owner IA Generative (Candidat)
+
+---
+
+*Ce POC est une maquette interactive demontrant la vision produit. Non affilie officiellement a Boulanger.*
