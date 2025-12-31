@@ -129,12 +129,24 @@ export async function POST(request: NextRequest) {
     // Parser le JSON de la réponse
     let parsedResponse;
     try {
-      parsedResponse = JSON.parse(textContent.text);
+      // Nettoyer la réponse des backticks markdown si présents
+      let jsonText = textContent.text.trim();
+
+      // Retirer les backticks markdown ```json ... ``` ou ``` ... ```
+      if (jsonText.startsWith('```')) {
+        jsonText = jsonText.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+      }
+
+      parsedResponse = JSON.parse(jsonText);
     } catch {
       // Si le JSON est invalide, créer une réponse par défaut
       parsedResponse = {
-        message: textContent.text,
-        options: null,
+        message: textContent.text.replace(/```(?:json)?|```/g, '').trim(),
+        options: [
+          { label: "💻 Je cherche un ordinateur", value: "ordinateur" },
+          { label: "🎮 Gaming", value: "gaming" },
+          { label: "💼 Travail", value: "travail" }
+        ],
         products: null,
         action: 'none',
       };
