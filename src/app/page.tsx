@@ -406,7 +406,7 @@ export default function Home() {
                     <h3 className="font-semibold text-white">Assistant Boulanger</h3>
                     <p className="text-xs text-green-400 flex items-center gap-1">
                       <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
-                      En ligne • Créé par Hicham Ghazi
+                      En ligne • Créé par le candidat
                     </p>
                   </div>
                 </div>
