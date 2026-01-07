@@ -52,21 +52,43 @@ interface APIResponse {
   selectedProductId?: string;
 }
 
-const categories = [
-  { id: 'informatique', name: 'Informatique', icon: '💻', description: 'PC, Mac, tablettes' },
-  { id: 'tv', name: 'TV & Son', icon: '📺', description: 'Téléviseurs, barres de son' },
-  { id: 'electromenager', name: 'Électroménager', icon: '🍳', description: 'Cuisine, lavage' },
-  { id: 'smartphone', name: 'Smartphone', icon: '📱', description: 'iPhone, Samsung, Xiaomi' },
-  { id: 'gaming', name: 'Gaming', icon: '🎮', description: 'Consoles, PC gamer' },
-  { id: 'photo', name: 'Photo & Vidéo', icon: '📷', description: 'Appareils, drones' },
-];
+// Utilitaire pour nettoyer les messages de tout JSON résiduel
+function sanitizeMessage(message: string): string {
+  if (!message) return "Je suis là pour vous aider ! Que recherchez-vous ?";
 
-const popularProducts = [
-  { name: 'MacBook Air M3', price: '1 299€', icon: '💻', tag: 'Best-seller' },
-  { name: 'iPhone 15 Pro', price: '1 229€', icon: '📱', tag: 'Nouveau' },
-  { name: 'TV OLED LG 55"', price: '1 499€', icon: '📺', tag: 'Promo' },
-  { name: 'PS5 Slim', price: '549€', icon: '🎮', tag: 'En stock' },
-];
+  let cleaned = message.trim();
+
+  // Détecter si le message est du JSON brut
+  if (cleaned.startsWith('{') && cleaned.includes('"message"')) {
+    try {
+      const parsed = JSON.parse(cleaned);
+      if (parsed.message && typeof parsed.message === 'string') {
+        cleaned = parsed.message;
+      }
+    } catch {
+      // Essayer d'extraire le message avec regex
+      const match = cleaned.match(/"message"\s*:\s*"([^"]+)"/);
+      if (match) {
+        cleaned = match[1];
+      }
+    }
+  }
+
+  // Vérifier si le message contient encore des patterns JSON suspects
+  if (cleaned.startsWith('{"') || cleaned.startsWith('[{')) {
+    // Retourner un message par défaut plutôt que du JSON
+    return "Je vous aide à trouver le produit idéal. Que recherchez-vous ?";
+  }
+
+  // Nettoyer les échappements JSON résiduels
+  cleaned = cleaned
+    .replace(/\\n/g, '\n')
+    .replace(/\\"/g, '"')
+    .replace(/\\\\/g, '\\');
+
+  return cleaned;
+}
+
 
 export default function Home() {
   const { addToCart, itemCount } = useCart();
@@ -188,10 +210,10 @@ export default function Home() {
         }
       }
 
-      // Ajouter le message de l'assistant
+      // Ajouter le message de l'assistant (avec nettoyage JSON)
       setMessages(prev => [...prev, {
         role: 'assistant',
-        text: data.message,
+        text: sanitizeMessage(data.message),
         options: data.options || undefined,
         products: localProducts,
       }]);
@@ -234,18 +256,6 @@ export default function Home() {
     addToCart(product);
     // Informer l'IA
     handleUserInput(`J'ajoute ${product.name} au panier`);
-  };
-
-  const handleCategoryClick = (categoryId: string, categoryName: string) => {
-    if (categoryId === 'informatique' || categoryId === 'gaming') {
-      handleUserInput(`Je cherche un produit ${categoryName}`);
-    } else {
-      setChatStarted(true);
-      setMessages(prev => [...prev,
-        { role: 'user', text: `Je cherche un produit ${categoryName}` },
-        { role: 'assistant', text: `Pour cette démo, je suis spécialisé en informatique et gaming. Cliquez sur "Informatique" ou "Gaming" pour voir le parcours complet !` }
-      ]);
-    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -403,7 +413,7 @@ export default function Home() {
                     <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-[#1a1a1a]"></div>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-white">Assistant Boulanger</h3>
+                    <h3 className="font-semibold text-white">Assistant Boulanger <span className="text-xs font-normal text-gray-400">| Rayon Ordinateurs</span></h3>
                     <p className="text-xs text-green-400 flex items-center gap-1">
                       <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
                       En ligne • Créé par le candidat
@@ -512,12 +522,80 @@ export default function Home() {
                     ))}
 
                     {isTyping && (
-                      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2">
-                        <div className="px-4 py-3 bg-[#2a2a2a] rounded-2xl border border-[#3a3a3a]">
-                          <div className="flex gap-1">
-                            <span className="w-2 h-2 bg-[#ff6b00] rounded-full animate-bounce" style={{animationDelay: '0ms'}}></span>
-                            <span className="w-2 h-2 bg-[#ff6b00] rounded-full animate-bounce" style={{animationDelay: '150ms'}}></span>
-                            <span className="w-2 h-2 bg-[#ff6b00] rounded-full animate-bounce" style={{animationDelay: '300ms'}}></span>
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex items-start gap-3"
+                      >
+                        {/* Avatar IA animé */}
+                        <div className="relative flex-shrink-0">
+                          <div className="w-10 h-10 bg-gradient-to-br from-[#ff6b00] to-[#cc5500] rounded-xl flex items-center justify-center">
+                            <motion.div
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                            >
+                              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                              </svg>
+                            </motion.div>
+                          </div>
+                          {/* Pulse effect */}
+                          <motion.div
+                            className="absolute -inset-1 bg-[#ff6b00]/30 rounded-xl"
+                            animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
+                            transition={{ duration: 1.5, repeat: Infinity }}
+                          />
+                        </div>
+
+                        {/* Bulle avec animation de texte */}
+                        <div className="flex-1 max-w-[80%]">
+                          <div className="px-4 py-3 bg-gradient-to-r from-[#1a1a1a] to-[#2a2a2a] rounded-2xl rounded-bl-sm border border-[#3a3a3a] overflow-hidden">
+                            {/* Barre de progression subtile */}
+                            <motion.div
+                              className="absolute top-0 left-0 h-0.5 bg-gradient-to-r from-[#ff6b00] to-[#ff8533]"
+                              initial={{ width: "0%" }}
+                              animate={{ width: "100%" }}
+                              transition={{ duration: 3, repeat: Infinity }}
+                            />
+
+                            {/* Message animé */}
+                            <div className="flex items-center gap-3">
+                              <motion.div
+                                animate={{ opacity: [0.5, 1, 0.5] }}
+                                transition={{ duration: 1.5, repeat: Infinity }}
+                                className="text-sm text-gray-300"
+                              >
+                                Analyse en cours
+                              </motion.div>
+
+                              {/* Points animés style moderne */}
+                              <div className="flex gap-1">
+                                {[0, 1, 2].map((i) => (
+                                  <motion.span
+                                    key={i}
+                                    className="w-1.5 h-1.5 bg-[#ff6b00] rounded-full"
+                                    animate={{
+                                      scale: [1, 1.5, 1],
+                                      opacity: [0.3, 1, 0.3]
+                                    }}
+                                    transition={{
+                                      duration: 0.8,
+                                      repeat: Infinity,
+                                      delay: i * 0.2
+                                    }}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Texte qui change */}
+                            <motion.p
+                              className="text-xs text-gray-500 mt-1"
+                              animate={{ opacity: [0, 1, 1, 0] }}
+                              transition={{ duration: 2, repeat: Infinity }}
+                            >
+                              Recherche des meilleures options...
+                            </motion.p>
                           </div>
                         </div>
                       </motion.div>
@@ -567,58 +645,153 @@ export default function Home() {
           </motion.div>
         </div>
 
-        {/* Categories */}
-        <section className="mb-12">
-          <h2 className="text-2xl font-bold mb-6">Explorer par catégorie</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {categories.map((category, index) => (
-              <motion.div
-                key={category.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                onClick={() => handleCategoryClick(category.id, category.name)}
-                className="bg-[#1a1a1a] rounded-2xl p-4 text-center cursor-pointer hover:bg-[#2a2a2a] border border-[#2a2a2a] hover:border-[#ff6b00] transition-all group"
-              >
-                <div className="text-4xl mb-2 group-hover:scale-110 transition-transform">{category.icon}</div>
-                <h3 className="font-medium text-sm">{category.name}</h3>
-                <p className="text-xs text-gray-500 mt-1">{category.description}</p>
-              </motion.div>
-            ))}
-          </div>
-        </section>
+        {/* SECTION DISCOVERY - Behind the Scenes */}
+        <section className="mb-16">
+          {/* Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center mb-12"
+          >
+            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-[#ff6b00]/20 to-transparent border border-[#ff6b00]/30 px-4 py-2 rounded-full text-sm mb-4">
+              <span className="text-[#ff6b00]">Behind the scenes</span>
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Comment j&apos;ai conçu ce <span className="text-[#ff6b00]">POC</span>
+            </h2>
+            <p className="text-gray-400 max-w-2xl mx-auto">
+              Une approche Product Management structurée : Discovery, Benchmark, Prototypage
+            </p>
+          </motion.div>
 
-        {/* Popular Products */}
-        <section className="mb-12">
-          <h2 className="text-2xl font-bold mb-6">Produits populaires</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {popularProducts.map((product, index) => (
+          {/* Process Timeline */}
+          <div className="grid md:grid-cols-4 gap-6 mb-12">
+            {[
+              {
+                step: '01',
+                icon: '🔍',
+                title: 'Discovery',
+                subtitle: 'Comprendre le problème',
+                items: [
+                  'Analyse des parcours e-commerce actuels',
+                  'Identification des points de friction',
+                  'Étude des attentes utilisateurs'
+                ]
+              },
+              {
+                step: '02',
+                icon: '📊',
+                title: 'Benchmark',
+                subtitle: 'S\'inspirer des meilleurs',
+                items: [
+                  'Amazon Rufus (IA shopping)',
+                  'Klarna AI Assistant',
+                  'ChatGPT Shopping plugins'
+                ]
+              },
+              {
+                step: '03',
+                icon: '✏️',
+                title: 'Design',
+                subtitle: 'Concevoir l\'expérience',
+                items: [
+                  'Parcours conversationnel guidé',
+                  'Quick replies pour fluidité',
+                  'Cross-sell intelligent'
+                ]
+              },
+              {
+                step: '04',
+                icon: '🚀',
+                title: 'Prototype',
+                subtitle: 'Valider rapidement',
+                items: [
+                  'Stack moderne (Next.js + Claude)',
+                  'Déploiement Vercel',
+                  'Itérations basées sur le feedback'
+                ]
+              }
+            ].map((phase, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 + index * 0.1 }}
-                className="bg-[#1a1a1a] rounded-2xl p-4 border border-[#2a2a2a] hover:border-[#ff6b00] transition-colors cursor-pointer group"
+                transition={{ delay: index * 0.1 }}
+                className="relative"
               >
-                <div className="flex justify-between items-start mb-3">
-                  <span className="text-4xl group-hover:scale-110 transition-transform">{product.icon}</span>
-                  <span className="text-xs bg-[#ff6b00] px-2 py-1 rounded-full">{product.tag}</span>
+                {/* Connector line */}
+                {index < 3 && (
+                  <div className="hidden md:block absolute top-8 left-full w-full h-0.5 bg-gradient-to-r from-[#ff6b00]/50 to-transparent z-0" />
+                )}
+
+                <div className="relative bg-gradient-to-br from-[#1a1a1a] to-[#0f0f0f] rounded-2xl p-6 border border-[#2a2a2a] hover:border-[#ff6b00]/50 transition-all h-full">
+                  {/* Step number */}
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="text-3xl">{phase.icon}</span>
+                    <div>
+                      <span className="text-xs text-[#ff6b00] font-mono">{phase.step}</span>
+                      <h3 className="font-bold text-lg">{phase.title}</h3>
+                    </div>
+                  </div>
+
+                  <p className="text-sm text-gray-400 mb-4">{phase.subtitle}</p>
+
+                  <ul className="space-y-2">
+                    {phase.items.map((item, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-gray-300">
+                        <span className="text-[#ff6b00] mt-1">›</span>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <h3 className="font-medium text-sm mb-1">{product.name}</h3>
-                <p className="text-[#ff6b00] font-bold">{product.price}</p>
               </motion.div>
             ))}
           </div>
+
+          {/* Skills demonstrated */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="bg-gradient-to-r from-[#1a1a1a] to-[#0f0f0f] rounded-2xl p-8 border border-[#2a2a2a]"
+          >
+            <h3 className="text-xl font-bold mb-6 text-center">Compétences démontrées</h3>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              {[
+                { skill: 'Product Discovery', icon: '🔍', desc: 'Identifier le bon problème à résoudre' },
+                { skill: 'Prompt Engineering', icon: '🤖', desc: 'Conception de prompts IA efficaces' },
+                { skill: 'UX Conversationnel', icon: '💬', desc: 'Design de parcours chatbot' },
+                { skill: 'Prototypage IA', icon: '⚡', desc: 'POC fonctionnel avec LLM' },
+                { skill: 'Cadrage Besoin', icon: '🎯', desc: 'Traduire un besoin métier en solution' }
+              ].map((item, index) => (
+                <div key={index} className="text-center">
+                  <div className="text-3xl mb-2">{item.icon}</div>
+                  <h4 className="font-semibold text-[#ff6b00] mb-1 text-sm">{item.skill}</h4>
+                  <p className="text-xs text-gray-500">{item.desc}</p>
+                </div>
+              ))}
+            </div>
+          </motion.div>
         </section>
 
-        {/* How it works */}
+        {/* How it works - Version simplifiée */}
         <section className="mb-12">
-          <h2 className="text-2xl font-bold mb-6">Comment ça marche ?</h2>
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-6 gap-4">
+            <div>
+              <h2 className="text-2xl font-bold">Testez l&apos;expérience</h2>
+              <p className="text-gray-400 text-sm mt-1">Remontez dans le chat et essayez le parcours d&apos;achat</p>
+            </div>
+            <div className="inline-flex items-center gap-2 bg-[#1a1a1a] border border-[#2a2a2a] px-4 py-2 rounded-full text-sm">
+              <span className="text-[#ff6b00]">💻</span>
+              <span className="text-gray-400">IA entraînée sur le rayon <span className="text-white font-medium">Informatique</span></span>
+            </div>
+          </div>
           <div className="grid md:grid-cols-3 gap-6">
             {[
-              { step: '1', title: 'Décrivez votre besoin', desc: 'Tapez ce que vous cherchez ou choisissez une catégorie' },
-              { step: '2', title: 'Répondez aux questions', desc: "L'assistant affine ses recommandations selon vos réponses" },
-              { step: '3', title: 'Trouvez le produit idéal', desc: 'Recevez des suggestions personnalisées et ajoutez au panier' },
+              { step: '1', title: 'Décrivez votre besoin', desc: 'Ex: "Je cherche un PC gaming" ou "Un Mac pour développer"' },
+              { step: '2', title: 'Répondez aux questions', desc: "L'assistant qualifie votre besoin : usage, budget, préférences" },
+              { step: '3', title: 'Recevez vos recommandations', desc: 'Produits personnalisés avec cross-sell intelligent' },
             ].map((item, index) => (
               <motion.div
                 key={index}

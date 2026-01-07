@@ -61,10 +61,11 @@ const SYSTEM_PROMPT = `Tu es l'assistant shopping de Boulanger, spécialisé dan
 6. Pose maximum 2-3 questions avant de proposer des produits
 7. Utilise des emojis avec modération (1-2 par message max)
 
-## FORMAT DE RÉPONSE
-Tu dois TOUJOURS répondre en JSON avec ce format exact:
+## FORMAT DE RÉPONSE - TRÈS IMPORTANT
+Tu dois TOUJOURS répondre en JSON valide avec ce format exact. Ne mets JAMAIS de texte avant ou après le JSON.
+
 {
-  "message": "Ton message texte ici",
+  "message": "Ton message texte conversationnel ici (PAS de JSON dans ce champ)",
   "options": [
     {"label": "🏷️ Option 1", "value": "option1"},
     {"label": "🏷️ Option 2", "value": "option2"}
@@ -72,13 +73,16 @@ Tu dois TOUJOURS répondre en JSON avec ce format exact:
   "products": [
     {"id": "product-id", "name": "Nom Produit", "price": 999, "image": "💻", "description": "Description courte"}
   ],
-  "action": "none"
+  "action": "none",
+  "selectedProductId": null
 }
 
+RÈGLES DU FORMAT:
+- "message": UNIQUEMENT du texte conversationnel, JAMAIS de JSON ou de structure technique
 - "options": tableau de choix rapides (2-4 max), ou null si pas pertinent
 - "products": tableau de produits recommandés, ou null si pas encore à l'étape recommandation
-- "action": "add_to_cart" si le client a choisi un produit, sinon "none"
-- "selectedProductId": l'ID du produit choisi si action="add_to_cart"
+- "action": "add_to_cart" si le client a confirmé vouloir un produit, sinon "none"
+- "selectedProductId": l'ID du produit choisi si action="add_to_cart", sinon null
 
 ## CATALOGUE PRODUITS
 ${PRODUCT_CATALOG}
@@ -90,7 +94,7 @@ ${PRODUCT_CATALOG}
 4. Client: "Je prends le MacBook Air" → Ajouter au panier, proposer écran externe
 5. Client: "Finalement non, je veux du gaming" → Pas de problème, proposer PC gaming
 
-Réponds UNIQUEMENT avec le JSON, sans texte avant ou après.`;
+RAPPEL CRITIQUE: Le champ "message" doit contenir UNIQUEMENT du texte lisible par un humain, pas de JSON.`;
 
 interface Message {
   role: 'user' | 'assistant';
@@ -114,8 +118,8 @@ export async function POST(request: NextRequest) {
     });
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1024,
+      model: 'claude-3-5-haiku-20241022', // Haiku = 3x plus rapide que Sonnet
+      max_tokens: 512, // Réponses plus courtes = plus rapides
       system: SYSTEM_PROMPT,
       messages: conversationHistory,
     });
@@ -138,10 +142,48 @@ export async function POST(request: NextRequest) {
       }
 
       parsedResponse = JSON.parse(jsonText);
+
+      // SÉCURITÉ: Vérifier si le champ "message" contient du JSON brut
+      // Cela arrive quand Claude met la réponse entière dans le champ message
+      if (parsedResponse.message && typeof parsedResponse.message === 'string') {
+        const messageText = parsedResponse.message.trim();
+
+        // Détecter si le message commence par { et contient des champs JSON typiques
+        if (messageText.startsWith('{') && messageText.includes('"message"')) {
+          try {
+            const nestedJson = JSON.parse(messageText);
+            // Si c'est du JSON valide avec un champ message, l'utiliser
+            if (nestedJson.message) {
+              parsedResponse = nestedJson;
+            }
+          } catch {
+            // Pas du JSON valide dans message, on garde tel quel
+          }
+        }
+
+        // Nettoyer le message de tout résidu JSON partiel
+        // ex: {"message": "Texte" devient juste "Texte"
+        if (parsedResponse.message.startsWith('{"') || parsedResponse.message.startsWith('[')) {
+          // Essayer d'extraire juste le texte du message
+          const messageMatch = parsedResponse.message.match(/"message"\s*:\s*"([^"]+)"/);
+          if (messageMatch) {
+            parsedResponse.message = messageMatch[1];
+          }
+        }
+      }
     } catch {
-      // Si le JSON est invalide, créer une réponse par défaut
+      // Si le JSON est invalide, essayer de récupérer quelque chose d'utile
+      const rawText = textContent.text.replace(/```(?:json)?|```/g, '').trim();
+
+      // Tenter d'extraire le message d'un JSON partiel
+      let extractedMessage = rawText;
+      const msgMatch = rawText.match(/"message"\s*:\s*"([^"]+)"/);
+      if (msgMatch) {
+        extractedMessage = msgMatch[1];
+      }
+
       parsedResponse = {
-        message: textContent.text.replace(/```(?:json)?|```/g, '').trim(),
+        message: extractedMessage,
         options: [
           { label: "💻 Je cherche un ordinateur", value: "ordinateur" },
           { label: "🎮 Gaming", value: "gaming" },
